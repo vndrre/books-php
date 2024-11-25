@@ -47,7 +47,7 @@ $availableAuthorsStmt->execute(['book_id' => $id]);
    
 <br><br>
 
-    <h3>Autorid:</h3>
+    <h3>Authors:</h3>
 
     <ul>
         <?php while ( $author = $bookAuthorsStmt->fetch() ) { ?>
