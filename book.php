@@ -1,12 +1,16 @@
 <?php
-    require_once('./connection.php');
-    
-    $id = $_GET["id"];
-    $stmt = $pdo->prepare('SELECT * FROM books WHERE id = :id');
-    $stmt->execute(['id' => $id]);
-    $book = $stmt->fetch();
 
-    
+require_once('./connection.php');
+
+$id = $_GET['id'];
+
+$stmt = $pdo->prepare('SELECT * FROM books WHERE id = :id');
+$stmt->execute(['id' => $id]);
+$book = $stmt->fetch();
+
+$stmt = $pdo->prepare('SELECT * FROM book_authors ba LEFT JOIN authors a ON ba.author_id=a.id WHERE ba.book_id = :id');
+$stmt->execute(['id' => $id]);
+
 ?>
 
 <!DOCTYPE html>
@@ -14,74 +18,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($book['title']); ?></title>
-    <style>
-        /* Basic Reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-
-        /* Body Styling */
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-
-        /* Container for Book Details */
-        .book-container {
-            width: 90%;
-            max-width: 600px;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-
-        /* Book Title Styling */
-        .title {
-            font-size: 28px;
-            margin-bottom: 20px;
-            color: #222;
-        }
-
-        /* Back Button Styling */
-        .button {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 10px 20px;
-            background-color: #007acc;
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.2s ease;
-        }
-
-        .button:hover {
-            background-color: #005f99;
-        }
-    </style>
+    <title>Document</title>
 </head>
 <body>
-    <div class="book-container">
-        <h1 class="title"><?= htmlspecialchars($book['title']); ?></h1>
-        <p>Price: $<?= htmlspecialchars(number_format($book['price'], 2)); ?></p>
+    <nav>
+        <a href="/index.php">Back</a>
+    </nav>
 
-        <a href="/edit.php?id=<?= $id; ?>" class="button">Edit</a>
-        <a href="/" class="button">Go Back to Book Store</a>
+    <h1><?= $book['title'];?></h1>
+    
+    <?php if ($book['cover_path']) { ?>
+        <img src="<?= $book['cover_path']; ?>" alt="Cover of <?= htmlspecialchars($book['title']); ?>">
+    <?php } ?>
 
-        <!-- Delete Button -->
-        <form action="delete.php" method="post" style="display: inline;">
-            <input type="hidden" name="id" value="<?= $id; ?>">
-            <input type="submit" value="Delete" class="button">
-        </form>
-    </div>
+    <h2>Authors:</h2>
+    <ul>
+        <?php while ( $author = $stmt->fetch() ) { ?>
+            
+            <li>
+                    <?= $author['first_name']; ?> <?= $author['last_name']; ?>
+            </li>
+        
+        <?php } ?>
+    </ul>
+
+    <p>Price: <?= round($book['price'], 2); ?> &euro;</p>
+
+    <a href="./edit.php?id=<?= $id; ?>">Edit</a>
+
+    <br><br>
+    <form action="./delete.php" method="post">
+        <input type="hidden" name="id" value="<?= $id; ?>">
+        <input type="submit" name="action" value="Delete">
+    </form>
 </body>
 </html>

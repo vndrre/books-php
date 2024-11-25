@@ -1,6 +1,12 @@
 <?php
-    require_once('./connection.php');
-    $stmt = $pdo->query('SELECT * FROM books WHERE is_deleted = 0');
+require_once('./connection.php');
+
+// Check if there is a search query
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+
+// Modify the SQL query to include a search condition
+$stmt = $pdo->prepare('SELECT * FROM books WHERE is_deleted = 0 AND title LIKE :search');
+$stmt->execute(['search' => '%' . $search . '%']);
 ?>
 
 <!DOCTYPE html>
@@ -10,23 +16,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bookstore</title>
     <style>
-        /* Basic Reset */
         * {
-            margin: 0;
+            margin: 5px;
             padding: 0;
             box-sizing: border-box;
             font-family: Arial, sans-serif;
         }
-
-        /* Body Styling */
         body {
             display: flex;
-            justify-content: center;
+            flex-direction: column;
             align-items: center;
             min-height: 100vh;
             background-color: #f4f4f9;
             color: #333;
+            padding-top: 20px;
         }
+
 
         /* Container for Books */
         .book-list {
@@ -63,21 +68,34 @@
             color: #005f99;
         }
 
-        .page-title{
+        .page-title {
             margin-bottom: 10px;
         }
     </style>
 </head>
 <body>
 
+<h1 class="page-title">Welcome to my Book Store!</h1>
+
+<!-- Search Form -->
+<div class="search-bar">
+    <form method="GET" action="">
+        <input type="text" name="search" placeholder="Search for a book..." value="<?= htmlspecialchars($search); ?>">
+        <button type="submit">Search</button>
+    </form>
+</div>
+
 <ul class="book-list">
-    <h1 class="page-title">Welcome to my Book Store!</h1>
     <?php while ($row = $stmt->fetch()) { ?>
         <li>
             <a href="./book.php?id=<?= $row['id']; ?>" class="book-section">
                 <?= htmlspecialchars($row['title']); ?>
             </a>
         </li>
+    <?php } ?>
+
+    <?php if ($stmt->rowCount() === 0) { ?>
+        <li>No books found.</li>
     <?php } ?>
 </ul>
 

@@ -1,19 +1,22 @@
 <?php
-    require_once('./connection.php');
-    
-    $id = $_GET["id"];
 
-    if (isset($_POST["action"]) && $_POST['action'] == 'Save') {
-        $stmt = $pdo->prepare('UPDATE books SET title = :title WHERE id = :id');
-        $stmt->execute(['id' => $id, 'title' => $_POST['title']]);
+require_once('./connection.php');
 
-        header("Location: ./book.php?id=$id");
-        exit;
-    }
+$id = $_GET['id'];
 
-    $stmt = $pdo->prepare('SELECT * FROM books WHERE id = :id');
-    $stmt->execute(['id' => $id]);
-    $book = $stmt->fetch();
+// get book data
+$stmt = $pdo->prepare('SELECT * FROM books WHERE id = :id');
+$stmt->execute(['id' => $id]);
+$book = $stmt->fetch();
+
+// get book auhtors
+$bookAuthorsStmt = $pdo->prepare('SELECT * FROM book_authors ba LEFT JOIN authors a ON ba.author_id=a.id WHERE ba.book_id = :id');
+$bookAuthorsStmt->execute(['id' => $id]);
+
+// get available auhtors
+$availableAuthorsStmt = $pdo->prepare('SELECT * FROM authors WHERE id NOT IN (SELECT author_id FROM book_authors WHERE book_id = :book_id)');
+$availableAuthorsStmt->execute(['book_id' => $id]);
+
 ?>
 
 <!DOCTYPE html>
@@ -21,70 +24,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($book['title']); ?></title>
-    <style>
-        /* Basic Reset */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: Arial, sans-serif;
-        }
-
-        /* Body Styling */
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f4f4f9;
-            color: #333;
-        }
-
-        /* Container for Book Details */
-        .book-container {
-            width: 90%;
-            max-width: 600px;
-            padding: 20px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
-
-        /* Book Title Styling */
-        .title {
-            font-size: 28px;
-            margin-bottom: 20px;
-            color: #222;
-        }
-
-        /* Back Button Styling */
-        .button {
-            display: inline-block;
-            margin-top: 15px;
-            padding: 10px 20px;
-            background-color: #007acc;
-            color: #ffffff;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.2s ease;
-        }
-
-        .button:hover {
-            background-color: #005f99;
-        }
-    </style>
+    <title>Document</title>
 </head>
 <body>
-    <div class="book-container">
-        <h1 class="title"><?= htmlspecialchars($book['title']); ?></h1>
+
+    <nav>
+        <a href="./book.php?id=<?= $id; ?>">Back</a>
+    </nav>
+    <br>
+
+    <h3><?= $book['title'];?></h3>
+
+    <form action="./update_book.php?id=<?= $id; ?>" method="post">
+        <label for="title">Title:</label>
+        <input type="text" name="title" value="<?= $book['title'];?>">
+        <br>
+        <label for="price">Price:</label>
+        <input type="text" name="price" value="<?= $book['price'];?>">
+        <br><br>
+        <input type="submit" name="action" value="Save">
+    </form>
+   
+<br><br>
+
+    <h3>Autorid:</h3>
+
+    <ul>
+        <?php while ( $author = $bookAuthorsStmt->fetch() ) { ?>
+            
+            <li>
+                <form action="./remove_author.php?id=<?= $id; ?>" method="post">
+                    <?= $author['first_name']; ?>
+                    <?= $author['last_name']; ?>
+                    <button type="submit" name="action" value="remove_auhtor" style="cursor: pointer; border: 0; background-color: inherit; margin-left: 16px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" x="0px" y="0px" width="16px" height="16px" viewBox="0 0 24 24" style="vertical-align: text-top;">
+                            <path d="M 10.806641 2 C 10.289641 2 9.7956875 2.2043125 9.4296875 2.5703125 L 9 3 L 4 3 A 1.0001 1.0001 0 1 0 4 5 L 20 5 A 1.0001 1.0001 0 1 0 20 3 L 15 3 L 14.570312 2.5703125 C 14.205312 2.2043125 13.710359 2 13.193359 2 L 10.806641 2 z M 4.3652344 7 L 5.8925781 20.263672 C 6.0245781 21.253672 6.877 22 7.875 22 L 16.123047 22 C 17.121047 22 17.974422 21.254859 18.107422 20.255859 L 19.634766 7 L 4.3652344 7 z"></path>
+                        </svg>
+                    </button>
+                    <input type="hidden" name="author_id" value="<?= $author['id']; ?>">
+                </form>
+            </li>
         
-        <form action="/edit.php?id=<?= $id; ?>" method="post">
-            <input type="text" name="title" value="<?= htmlspecialchars($book['title']); ?>">
-            <br><br>
-            <input type="submit" name="action" value="Save" class="button">
-        </form>
-    </div>
+        <?php } ?>
+    </ul>
+
+    <form action="./add_author.php" method="post">
+        
+        <input type="hidden" name="book_id" value="<?= $id; ?>">
+        <h4>Add an existing Author</h4>
+        <select name="author_id">
+    
+            <option value=""></option>
+        
+        <?php while ( $author = $availableAuthorsStmt->fetch() ) { ?>
+            <option value="<?= $author['id']; ?>">
+                <?= $author['first_name']; ?>
+                <?= $author['last_name']; ?>
+            </option>
+        <?php } ?>
+
+        </select>
+
+        <button type="submit" name="action" value="add_author">
+            Add author
+        </button>
+
+    </form>
+    
+    
+    <form action="./add_author.php" method="post">
+        <input type="hidden" name="book_id" value="<?= $id; ?>">
+
+        <h4>Add a New Author</h4>
+        <label for="first_name">First Name:</label>
+        <input type="text" name="first_name" required>
+
+        <br>
+
+        <label for="last_name">Last Name:</label>
+        <input type="text" name="last_name" required>
+
+        <br>
+
+        <button type="submit" name="action" value="add_new_author">Add New Author</button>
+    </form>
+
 </body>
 </html>
